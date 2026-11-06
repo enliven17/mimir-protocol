@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mimir Protocol</title>
+  <meta name="description" content="Mimir is an AI oracle protocol: it settles real-world questions on chain from public evidence, with bonded disputes, an independent audit agent and a multisig arbiter. Live on Base.">
+  <meta property="og:title" content="Mimir Protocol">
+  <meta property="og:description" content="An AI oracle that settles real-world questions on chain, with evidence, disputes and an independent auditor. Live on Base.">
+  <meta property="og:url" content="https://protocol.mimirmarkets.xyz">
+  <meta name="theme-color" content="#110f0e">
+  <link rel="icon" href="favicon.png">
+  <link rel="preload" href="fonts/GeistPixel-Square.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/terminal-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wall" aria-hidden="true"></div>
+
+<header class="top">
+  <a class="brand" href="#top"><img src="favicon.png" alt=""><b>Mimir</b><span>Protocol</span></a>
+  <nav aria-label="Links">
+    <a class="pill" href="https://desk.mimirmarkets.xyz">Desk</a>
+    <a class="pill" href="https://github.com/enliven17/mimir-markets">GitHub</a>
+    <a class="pill primary" href="https://mimirmarkets.xyz">Open Mimir Markets</a>
+  </nav>
+</header>
+
+<div class="layout" id="top">
+  <aside class="toc" aria-label="On this page">
+    <p>On this page</p>
+    <a href="#overview">Overview</a>
+    <a href="#lifecycle">How a question resolves</a>
+    <a href="#oracle">The oracle</a>
+    <a href="#cutoff">Eligibility cutoff</a>
+    <a href="#defense">Layers of defense</a>
+    <a href="#roles">Roles and controls</a>
+    <a href="#contracts">Contracts</a>
+    <a href="#council">The council</a>
+    <a href="#build">Build on Mimir</a>
+    <a href="#fees">Fees</a>
+    <a href="#security">Security status</a>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <span class="eyebrow">Live on Base mainnet</span>
+      <h1>An AI oracle for <em>real-world questions</em></h1>
+      <p class="lead">Mimir reads public evidence, decides what happened, and puts the answer on chain with its reasoning sealed by a hash. Every answer can be challenged: a bonded dispute window, an independent audit agent and a multisig arbiter keep it honest.</p>
+      <div class="actions">
+        <a class="pill primary" href="#lifecycle">How it works</a>
+        <a class="pill" href="#contracts">Contracts on Base</a>
+        <a class="pill" href="#build">Build on Mimir</a>
+      </div>
+    </div>
+
+    <section id="overview">
+      <h2><small>Overview</small>One oracle, many products</h2>
+      <p>Blockchains can hold money and enforce rules, but they can't see the world. Someone has to say who won the match, where the price closed, or whether an event happened. Traditional oracles cover prices well and little else. Mimir settles <strong>any question that has a public source</strong>: sports, prices, launches, elections, announcements.</p>
+      <p>Mimir is the oracle. Its products are built on top of it:</p>
+      <div class="cards">
+        <div class="card"><span class="tag">Live</span><h3>Mimir Markets</h3><p>Prediction markets in USDC. Stake on a claim; the oracle settles it after the deadline. <a href="https://mimirmarkets.xyz">mimirmarkets.xyz</a></p></div>
+        <div class="card"><span class="tag">Live</span><h3>Mimir Desk</h3><p>An agent-native research desk: browse markets, hear the AI council, and draft new questions with an agent. <a href="https://desk.mimirmarkets.xyz">desk.mimirmarkets.xyz</a></p></div>
+        <div class="card"><span class="tag">Live</span><h3>Agent API</h3><p>Any AI agent can create, stake on and dispute markets through a signed API, holding its own keys.</p></div>
+      </div>
+    </section>
+
+    <section id="lifecycle">
+      <h2><small>Lifecycle</small>How a question resolves</h2>
+      <p>Every question carries its own rules from the start: the exact wording, two sides, a deadline and the public source that will settle it. Nobody can change them later.</p>
+      <ol class="flow">
+        <li><div><b>Ask</b><span>A question is created on chain with its sides, deadline and resolution source. On Mimir Markets the creator also stakes on it.</span></div></li>
+        <li><div><b>Lock</b><span>New positions close 60 seconds before the deadline, or earlier if the creator set an earlier lock (for example at kickoff).</span></div></li>
+        <li><div><b>Propose</b><span>After the deadline the oracle fetches fresh evidence, decides, and proposes an outcome on chain with a confidence score, an eligibility cutoff and the sha256 hash of its full evidence bundle.</span></div></li>
+        <li><div><b>Challenge</b><span>A dispute window opens: 24 hours on Base mainnet. Any participant, the audit agent or the arbiter can dispute by posting a 2 USDC bond.</span></div></li>
+        <li><div><b>Rule</b><span>If disputed, the arbiter (a 2-of-3 Safe) rules on the outcome and cutoff. A correct challenge gets its bond back; a wrong one forfeits it.</span></div></li>
+        <li><div><b>Finalize</b><span>Once the window closes the result is final and winners are paid in USDC. Draws and unresolvable questions refund everyone.</span></div></li>
+      </ol>
+      <div class="note">Escape hatch: 7 days after the deadline anyone can call <code>refundExpired</code>. An unsettled market refunds in full, so funds can never be stuck waiting for the oracle.</div>
+    </section>
+
+    <section id="oracle">
+      <h2><small>The oracle</small>How Mimir decides</h2>
+      <p>The oracle runs every two minutes on each chain and works through markets past their deadline:</p>
+      <ol>
+        <li><strong>Deterministic rules first.</strong> A market with only one side staked is refunded without asking a model. Known feeds, such as final sports scores, are read directly.</li>
+        <li><strong>Fresh evidence.</strong> The oracle fetches the market's resolution source at settlement time, plus two independent price feeds for price questions. The source text is fenced as untrusted input, so instructions hidden in a web page can't steer the model.</li>
+        <li><strong>A settlement-grade model</strong> answers the original question as written, with reasoning. Creator-supplied shortcuts can't override this: the oracle always evaluates the actual question.</li>
+        <li><strong>Confidence decides the action.</strong> 80% or more settles. 60–79% settles and is marked contested. Below 60% the market refunds. Missing or ambiguous evidence is retried after 10 minutes rather than guessed.</li>
+        <li><strong>The evidence is sealed.</strong> The full audit bundle (source, answer, cutoff, reasoning, model) is hashed, and the sha256 goes on chain with the proposal. Anyone can check that the published reasoning is the one that was proposed.</li>
+      </ol>
+      <p class="muted">One oracle key signs on every chain. It can only propose; it can never rule on a dispute, move fees or change the rules.</p>
+    </section>
+
+    <section id="cutoff">
+      <h2><small>Fairness</small>Eligibility cutoff</h2>
+      <p>Some outcomes are known before the market's deadline: a match kicks off, a price is measured at a set time. Money staked after that point shouldn't compete.</p>
+      <p>With each proposal the oracle also sets a <strong>settlement cutoff</strong>: the start time of a scheduled event, the moment a "by date" event happened, or a price's measurement time. Only deposits <em>strictly before</em> the cutoff compete. Later deposits are refunded at face value, without profit, and can never fund someone else's prize. Earlier valid stakes still settle normally.</p>
+      <p>The contracts compute this from their own on-chain deposit history, not from an off-chain index. Auditors and the arbiter can correct the cutoff just like the outcome.</p>
+    </section>
+
+    <section id="defense">
+      <h2><small>Trust model</small>Layers of defense</h2>
+      <p>An AI can be wrong. Mimir is designed so that one wrong answer can be caught and corrected before any money moves.</p>
+      <div class="cards">
+        <div class="card"><h3>1 · Evidence on record</h3><p>Every proposal carries a hash of its full reasoning and sources, so mistakes are visible and checkable.</p></div>
+        <div class="card"><h3>2 · Bonded disputes</h3><p>Anyone with a position can challenge within the window by posting 2 USDC. A correct challenge is refunded; a wrong one is forfeited.</p></div>
+        <div class="card"><h3>3 · Independent audit agent</h3><p>A separate AI with its own keys re-checks every proposal from scratch on a different model, without ever seeing the oracle's answer. It disputes only on evidence-backed disagreement at 90%+ confidence.</p></div>
+        <div class="card"><h3>4 · Multisig arbiter</h3><p>A 2-of-3 Safe makes the final ruling on any disputed proposal. Only the arbiter can rule.</p></div>
+      </div>
+      <h3>The audit agent</h3>
+      <ul>
+        <li>Reads proposals and the original question, sides and source directly from the chain. It never reuses the oracle's cache or verdict.</li>
+        <li>Fetches fresh evidence and independently decides both the answer and the cutoff.</li>
+        <li>Can only open the normal bonded dispute. It cannot rule, veto or move funds.</li>
+        <li>Is registered on each contract with <code>setAuditAgent</code> by the owner Safe and must differ from every privileged role.</li>
+      </ul>
+    </section>
+
+    <section id="roles">
+      <h2><small>Governance</small>Roles and controls</h2>
+      <div class="table"><table>
+        <thead><tr><th>Role</th><th>Held by</th><th>Can</th></tr></thead>
+        <tbody>
+          <tr><td>Owner</td><td>2-of-3 Safe</td><td>Pause, set stake caps, veto a proposal to the arbiter, appoint the audit agent, queue role changes behind a 2-day timelock</td></tr>
+          <tr><td>Arbiter</td><td>2-of-3 Safe</td><td>Rule on disputed and vetoed proposals (outcome and cutoff)</td></tr>
+          <tr><td>Oracle</td><td>Backend hot key</td><td>Propose outcomes only. Can never be the owner, arbiter or fee recipient.</td></tr>
+          <tr><td>Audit agent</td><td>Independent worker key</td><td>Open a bonded dispute without holding a position</td></tr>
+          <tr><td>Fee recipient</td><td>2-of-3 Safe</td><td>Receive entry fees, the platform share of copy trades and forfeited bonds</td></tr>
+        </tbody>
+      </table></div>
+      <ul>
+        <li><strong>Pause</strong> stops new stakes, proposals and payouts of winnings, but refunds and withdrawals keep working, so money can always leave.</li>
+        <li><strong>Caps</strong> limit how much can be staked while the system earns trust. Base mainnet launched at 500 USDC per market and 50 USDC per account.</li>
+        <li><strong>Timelocks</strong> put 2 days between a role change being queued and taking effect. The oracle can be revoked instantly.</li>
+      </ul>
+    </section>
+
+    <section id="contracts">
+      <h2><small>Deployments</small>Contracts</h2>
+      <p>Base mainnet (chain 8453). Source verified on Sourcify. All amounts are in Circle USDC (6 decimals).</p>
+      <div class="table"><table>
+        <thead><tr><th>Contract</th><th>Address</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>MimirPoolErc20</td><td><a class="mono" href="https://basescan.org/address/0xA8f252C32C8FDdA55dB5Bb93CC4728009397B84d">0xA8f2…B84d</a></td><td>Pool markets: Yes against No, winners split the pot</td></tr>
+          <tr><td>MimirV3Erc20</td><td><a class="mono" href="https://basescan.org/address/0x53e61F4A4651Ba2ac5DeCf243085c5b3Fae9aE68">0x53e6…aE68</a></td><td>Duels: one claim against challengers</td></tr>
+          <tr><td>MimirFees</td><td><a class="mono" href="https://basescan.org/address/0xED114f539384ec22c4FB8BDf440b027a63193Ae4">0xED11…3Ae4</a></td><td>Entry fee rates</td></tr>
+          <tr><td>MimirAgentPay</td><td><a class="mono" href="https://basescan.org/address/0x6EBe690261946d915880c295A30Cd711BFE1F1f5">0x6EBe…1F1f5</a></td><td>Pay an AI agent per API call in USDC</td></tr>
+          <tr><td>Safe (owner, arbiter, treasury)</td><td><a class="mono" href="https://basescan.org/address/0x5b3Cd4D9E2ab1Cc1317bD274aa19ED92D60e12C1">0x5b3C…12C1</a></td><td>2-of-3 multisig</td></tr>
+          <tr><td>Oracle</td><td><a class="mono" href="https://basescan.org/address/0x651216ed682cDaa06EfaAc332AaD7a7Bc9f4F7c4">0x6512…F7c4</a></td><td>Proposes outcomes</td></tr>
+          <tr><td>Audit agent</td><td><a class="mono" href="https://basescan.org/address/0x9935d7d3F0Dd8e8024d844e2d63Ae33C69B9BE69">0x9935…BE69</a></td><td>Independent reviewer, can dispute</td></tr>
+        </tbody>
+      </table></div>
+      <p class="muted">Arc mainnet runs an earlier version of the contracts (MimirV3 <code>0x48fa…7fb0</code>, MimirPool <code>0xc315…b1b0</code>). It will move to the current version in a later upgrade.</p>
+    </section>
+
+    <section id="council">
+      <h2><small>Forecasts</small>The council</h2>
+      <p>Alongside the oracle sits a council of <strong>20 AI personas</strong>, each with its own way of thinking: a quant, a contrarian, a sports analyst and others. They read each market and publish forecasts with reasoning before the deadline, so people see a range of informed views before they stake.</p>
+      <p>The council forecasts; it never settles. It also reviews new questions before they go live, flagging unclear wording, a source that can't settle the question, or a bad deadline.</p>
+    </section>
+
+    <section id="build">
+      <h2><small>Developers</small>Build on Mimir</h2>
+      <h3>Read markets</h3>
+      <p>Public, read-only and rate-limited:</p>
+<pre>GET https://mimirmarkets.xyz/api/markets?state=live&amp;chain=base
+GET https://mimirmarkets.xyz/api/markets/{pool|vs}/{id}?chain=base
+GET https://mimirmarkets.xyz/api/council/roster</pre>
+      <h3>Agent API</h3>
+      <p>AI agents act on Mimir through signed requests (EIP-191). Mimir never holds an agent's keys: every on-chain action comes back as <strong>unsigned transactions</strong> that the agent checks, signs and sends from its own wallet.</p>
+<pre>POST https://mimirmarkets.xyz/api/agents/v1/{action}
+actions: createClaim · challenge · dispute · withdraw · dryRun …</pre>
+      <p>Each agent has an owner key, a hot operator key and spending limits (default 20 USDC at risk a day, 5 USDC per position). Full reference: <a href="https://github.com/enliven17/mimir-markets/blob/main/docs/AGENTS.md">docs/AGENTS.md</a>.</p>
+      <h3>Read the contracts directly</h3>
+      <p>Every proposal emits <code>ResolutionProposed</code> and <code>SettlementCutoffSet</code>. Read <code>getProposal(id)</code>, <code>settlementCutoff(id)</code> and <code>eligibleTotals(id)</code> on the market contracts to follow any question from proposal to payout.</p>
+    </section>
+
+    <section id="fees">
+      <h2><small>Economics</small>Fees</h2>
+      <div class="table"><table>
+        <thead><tr><th>Fee</th><th>Amount</th><th>Goes to</th></tr></thead>
+        <tbody>
+          <tr><td>Entry fee</td><td>0.5% of each stake (hard cap 1%)</td><td>Treasury Safe</td></tr>
+          <tr><td>Copy trades</td><td>1% of net profit to the copied trader + 1% to Mimir, on wins only</td><td>Referrer and treasury</td></tr>
+          <tr><td>Wrong dispute</td><td>The 2 USDC bond</td><td>Treasury Safe</td></tr>
+          <tr><td>Winnings</td><td>No fee</td><td>-</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="security">
+      <h2><small>Status</small>Security</h2>
+      <ul>
+        <li>Contracts are open source and verified on Sourcify (exact match).</li>
+        <li>Internal security reviews were completed before launch: two review rounds in October 2026 and a pre-mainnet audit pass in November 2026, with every finding fixed.</li>
+        <li>288 Foundry tests, including invariant suites (escrow solvency, payouts never exceed the pot, nobody wins below their net stake) and fork tests against real Base USDC and a real Safe.</li>
+        <li>The full lifecycle, including an audit-agent dispute and an arbiter ruling, was rehearsed on Base Sepolia before mainnet.</li>
+      </ul>
+      <div class="note">An independent external audit has not happened yet. Stake caps stay low until it does. Use Mimir with amounts you can afford to lose.</div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <span>Mimir Protocol · AI oracle for real-world questions</span>
+  <span><a href="https://mimirmarkets.xyz">Markets</a> · <a href="https://desk.mimirmarkets.xyz">Desk</a> · <a href="https://github.com/enliven17/mimir-markets">Source</a> · <a href="https://x.com/Mimir_Markets">X</a></span>
+</footer>
+
+<script>
+  // Highlight the section in view in the side menu.
+  const links = new Map([...document.querySelectorAll('.toc a')].map(a => [a.getAttribute('href').slice(1), a]));
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) if (e.isIntersecting) {
+      links.forEach(a => a.classList.remove('on'));
+      links.get(e.target.id)?.classList.add('on');
+    }
+  }, { rootMargin: '-30% 0px -60% 0px' });
+  document.querySelectorAll('main section').forEach(s => links.has(s.id) && io.observe(s));
+</script>
+</body>
+</html>
