@@ -39,7 +39,7 @@ article a { text-decoration: underline; text-decoration-color: rgb(255 81 72 / 0
 article a:hover { text-decoration-color: var(--coral-hi); }
 article a.anchor { text-decoration: none; }
 article :not(pre) > code { padding: 2px 6px; border-radius: 5px; background: var(--panel-2); color: var(--cream); font-size: 0.86em; overflow-wrap: anywhere; }
-article pre { margin: 0 0 20px; padding: 16px 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--ink-deep); overflow-x: auto; font-size: 13px; line-height: 1.7; color: var(--cream); }
+article pre { margin: 0 0 20px; padding: 16px 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--ink-deep); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.7; color: var(--cream); }
 article blockquote { margin: 0 0 18px; padding: 12px 16px; border-left: 3px solid var(--coral); border-radius: 0 8px 8px 0; background: rgb(255 81 72 / 0.06); }
 .table { margin: 0 0 22px; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
