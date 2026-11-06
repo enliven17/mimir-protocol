@@ -1,9 +1,16 @@
 # Mimir Protocol
 
-Documentation site for Mimir, an AI oracle that settles real-world questions on chain from public evidence, with bonded disputes, an independent audit agent and a multisig arbiter. Live at [protocol.mimirmarkets.xyz](https://protocol.mimirmarkets.xyz).
+Site and documentation for Mimir, the AI oracle for real-world questions: [protocol.mimirmarkets.xyz](https://protocol.mimirmarkets.xyz).
 
-Products built on the oracle: [Mimir Markets](https://mimirmarkets.xyz), [Mimir Desk](https://desk.mimirmarkets.xyz) and the Agent API. Contracts and backend: [enliven17/mimir-markets](https://github.com/enliven17/mimir-markets).
+- `site/`: the landing page and shared assets.
+- `content/docs/`: the documentation, one Markdown file per page. The sidebar order is the `NAV` list in `build.mjs`.
+- `build.mjs`: renders the docs into `dist/` with `marked`, plus a search index.
 
-Plain static HTML and CSS, no build step. Open `index.html` locally, or deploy the folder as is.
+```sh
+npm install
+npm run build   # writes dist/
+```
 
-Fonts: Geist Pixel and Geist Mono (SIL OFL, see `fonts/GEIST-LICENSE.txt`), Terminal Grotesque (SIL OFL, see `fonts/TERMINAL-GROTESQUE-LICENSE.md`).
+Contracts, oracle and backend live in [enliven17/mimir-markets](https://github.com/enliven17/mimir-markets).
+
+Fonts: Geist and Geist Mono (SIL OFL, `site/fonts/GEIST-LICENSE.txt`), Terminal Grotesque (SIL OFL, `site/fonts/TERMINAL-GROTESQUE-LICENSE.md`).
